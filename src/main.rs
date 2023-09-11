@@ -88,7 +88,7 @@ fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
         }
 
         let mut res = 0u32;
-        for (pos, bit) in bits.iter().enumerate() {
+        for (pos, bit) in bits.iter().rev().enumerate() {
             res |= (*bit as u32) << (pos as u32);
         }
         Some(res)
@@ -146,8 +146,8 @@ enum Instruction {
 
 instruction_matcher!({
     "0000 0001 dddd rrrr" => (ctx) {
-        let dst = ctx.dst.unwrap();
-        let reg = ctx.reg.unwrap();
+        let dst = ctx.dst.unwrap() * 2; // only even registers allowed
+        let reg = ctx.reg.unwrap() * 2;
         Instruction::Movw { dst, reg }
     }
     "0000 11rd dddd rrrr" => (ctx) {
@@ -169,7 +169,6 @@ instruction_matcher!({
         Instruction::Ret
     }
 });
-
 
 fn main() {
     let in_file = env::args().skip(1).next().unwrap();
