@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::{env, path::PathBuf};
+use std::env;
 use std::fs;
 
 // type Word = u16;
@@ -35,6 +35,95 @@ fn read_ihex(s: &str) -> Vec<u8> {
     res
 }
 
+struct MatchCtx {
+    reg: Option<u32>,
+    dst: Option<u32>,
+    len: usize,
+}
+
+fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
+    let x = words[0] as u16;
+    let y = words[1] as u16;
+    let v = (x << 8) | y;
+
+    let pattern: String = pattern.chars()
+        .filter(|ch| *ch != ' ')
+        .collect();
+    if pattern.len() != 16 {
+        panic!("bad pattern");
+    }
+
+    let mut rbits: Vec<u8> = vec![];
+    let mut dbits: Vec<u8> = vec![];
+
+    fn nth_bit(v: u16, n: usize) -> u16 {
+        (v >> (15 - n as u16)) & 1
+    }
+
+    for i in 0..16 {
+        match pattern.chars().skip(i).next().unwrap() {
+            '0' => {
+                if nth_bit(v, i) != 0 {
+                    return None;
+                }
+            },
+            '1' => {
+                if nth_bit(v, i) != 1 {
+                    return None;
+                }
+            },
+            'r' => {
+                rbits.push(nth_bit(v, i) as u8);
+            }
+            'd' => {
+                dbits.push(nth_bit(v, i) as u8);
+            }
+            _ => panic!("bad pattern"),
+        }
+    }
+    
+    fn bits2u32(bits: &[u8]) -> Option<u32> {
+        if bits.is_empty() {
+            return None;
+        }
+
+        let mut res = 0u32;
+        for (pos, bit) in bits.iter().enumerate() {
+            res |= (*bit as u32) << (pos as u32);
+        }
+        Some(res)
+    }
+
+    let reg = bits2u32(&rbits);
+    let dst = bits2u32(&dbits);
+
+    Some(MatchCtx { reg, dst, len: 2 })
+}
+
+macro_rules! instruction_matcher {
+    ({
+        $(
+            $pattern:expr => ($ctx_name:ident) $body:block
+        )*
+    }) => {
+        fn match_instruction(words: &[u8]) -> Option<Instruction> {
+            $(
+                match do_match_instruction(words, $pattern) {
+                    Some(ctx) => {
+                        let $ctx_name = ctx;
+                        let result: Instruction = $body;
+                        return Some(result);
+                    }
+                    None => {}
+                }
+            )*
+
+            None
+        }
+    };
+}
+
+#[derive(Debug)]
 enum Instruction {
     Movw {
         dst: u32,
@@ -55,64 +144,32 @@ enum Instruction {
     Ret,
 }
 
-macro_rules! instruction_matcher {
-    () => {
-        
-    };
-}
-
-struct MatchCtx {
-    reg: Option<u32>,
-    dst: Option<u32>,
-}
-
 instruction_matcher!({
-    "0000 0001 dddd rrrr" => (ctx: MatchCtx) {
+    "0000 0001 dddd rrrr" => (ctx) {
         let dst = ctx.dst.unwrap();
         let reg = ctx.reg.unwrap();
-        Instruction::Movw(dst, reg)
+        Instruction::Movw { dst, reg }
     }
-    "0000 11rd dddd rrrr" => (ctx: MatchCtx) {
+    "0000 11rd dddd rrrr" => (ctx) {
         let dst = ctx.dst.unwrap();
         let reg = ctx.reg.unwrap();
-        Instruction::Add(dst, reg)
+        Instruction::Add { dst, reg }
     }
-    "1001 11rd dddd rrrr" => (ctx: MatchCtx) {
+    "1001 11rd dddd rrrr" => (ctx) {
         let dst = ctx.dst.unwrap();
         let reg = ctx.reg.unwrap();
-        Instruction::Mul(dst, reg)
+        Instruction::Mul { dst, reg }
     }
-    "0010 01rd dddd rrrr" => (ctx: MatchCtx) {
+    "0010 01rd dddd rrrr" => (ctx) {
         let dst = ctx.dst.unwrap();
         let reg = ctx.reg.unwrap();
-        Instruction::Eor(dst, reg)
+        Instruction::Eor { dst, reg }
     }
-    "1001 0101 0000 1000" => (ctx: MatchCtx) {
+    "1001 0101 0000 1000" => (ctx) {
         Instruction::Ret
     }
 });
 
-fn foo(words: &[u8]) {
-    for p in words.chunks_exact(2) {
-        let x = p[0] as u16;
-        let y = p[1] as u16;
-        let v = (x << 8) | y;
-
-        let pattern: String = "...".chars()
-            .filter(|ch| *ch != ' ')
-            .collect();
-        if pattern.len() != 16 {
-            panic!("bad pattern");
-        }
-
-        let dbits: Vec<u8> = vec![];
-        let rbits: Vec<u8> = vec![];
-
-        for i in (0..16).rev().map(|v| v as u16) {
-            
-        }
-    }
-}
 
 fn main() {
     let in_file = env::args().skip(1).next().unwrap();
@@ -128,7 +185,15 @@ fn main() {
         pair[1] = f;
     }
 
-    for i in data {
-        println!("{:08b}", i);
+    let mut cur = 0usize;
+    while cur != data.len() {
+        let ins = match_instruction(&data[cur..])
+            .expect("failed to match instruction");
+        println!("{:?}", ins);
+        cur += 2;
     }
+
+    // for i in data {
+    //     println!("{:08b}", i);
+    // }
 }
