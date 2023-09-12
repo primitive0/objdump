@@ -38,45 +38,71 @@ fn read_ihex(s: &str) -> Vec<u8> {
 struct MatchCtx {
     reg: Option<u32>,
     dst: Option<u32>,
+    k: Option<u32>,
+    port: Option<u32>,
     len: usize,
 }
 
-fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
-    let x = words[0] as u16;
-    let y = words[1] as u16;
-    let v = (x << 8) | y;
+fn read_word(data: &[u8], len: usize) -> Option<u32> {
+    assert!(len <= 4);
 
+    let mut res = 0u32;
+    for i in (0..len).rev() {
+        res |= (*data.get(i)? as u32) << (8 * (len - i - 1));
+    }
+    Some(res)
+}
+
+fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
     let pattern: String = pattern.chars()
         .filter(|ch| *ch != ' ')
         .collect();
-    if pattern.len() != 16 {
-        panic!("bad pattern");
-    }
+
+    let bytes_required: usize = {
+        const ALLOWED_SIZES: [usize; 3] = [8, 16, 32];
+        if !ALLOWED_SIZES.contains(&pattern.len()) {
+            panic!("bad pattern");
+        }
+        pattern.len() / 8
+    };
+
+    let word = read_word(words, bytes_required)?;
+    // println!("{:032b}", word);
 
     let mut rbits: Vec<u8> = vec![];
     let mut dbits: Vec<u8> = vec![];
+    let mut kbits: Vec<u8> = vec![];
+    let mut pbits: Vec<u8> = vec![];
 
-    fn nth_bit(v: u16, n: usize) -> u16 {
-        (v >> (15 - n as u16)) & 1
-    }
+    let nth_bit = |n: usize| {
+        let bits = bytes_required * 8;
+        ((word >> ((bits - n - 1) as u32)) & 1) as u8
+    };
 
-    for i in 0..16 {
+    for i in 0..(pattern.len()) {
+        let bit = nth_bit(i);
         match pattern.chars().skip(i).next().unwrap() {
             '0' => {
-                if nth_bit(v, i) != 0 {
+                if bit != 0 {
                     return None;
                 }
             },
             '1' => {
-                if nth_bit(v, i) != 1 {
+                if bit != 1 {
                     return None;
                 }
             },
             'r' => {
-                rbits.push(nth_bit(v, i) as u8);
+                rbits.push(bit);
             }
             'd' => {
-                dbits.push(nth_bit(v, i) as u8);
+                dbits.push(bit);
+            },
+            'k' => {
+                kbits.push(bit);
+            },
+            'P' => {
+                pbits.push(bit);
             }
             _ => panic!("bad pattern"),
         }
@@ -96,8 +122,10 @@ fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
 
     let reg = bits2u32(&rbits);
     let dst = bits2u32(&dbits);
+    let k = bits2u32(&kbits);
+    let port = bits2u32(&pbits);
 
-    Some(MatchCtx { reg, dst, len: 2 })
+    Some(MatchCtx { reg, dst, k, port, len: bytes_required })
 }
 
 macro_rules! instruction_matcher {
@@ -106,13 +134,13 @@ macro_rules! instruction_matcher {
             $pattern:expr => ($ctx_name:ident) $body:block
         )*
     }) => {
-        fn match_instruction(words: &[u8]) -> Option<Instruction> {
+        fn match_instruction(words: &[u8]) -> Option<(Instruction, usize)> {
             $(
                 match do_match_instruction(words, $pattern) {
                     Some(ctx) => {
                         let $ctx_name = ctx;
                         let result: Instruction = $body;
-                        return Some(result);
+                        return Some((result, $ctx_name.len));
                     }
                     None => {}
                 }
@@ -141,6 +169,20 @@ enum Instruction {
         dst: u32,
         reg: u32,
     },
+    Jmp {
+        pos: u32,
+    },
+    Out {
+        reg: u32,
+        port: u32,
+    },
+    Ldi {
+        dst: u32,
+        val: u32,
+    },
+    Call {
+        addr: u32,
+    },
     Ret,
 }
 
@@ -165,18 +207,37 @@ instruction_matcher!({
         let reg = ctx.reg.unwrap();
         Instruction::Eor { dst, reg }
     }
+    "1001 010k kkkk 110k kkkk kkkk kkkk kkkk" => (ctx) {
+        let k = ctx.k.unwrap();
+        Instruction::Jmp { pos: k }
+    }
+    "1011 1PPr rrrr PPPP" => (ctx) {
+        let reg = ctx.reg.unwrap();
+        let port = ctx.port.unwrap();
+        Instruction::Out { reg, port }
+    }
+    "1110 kkkk dddd kkkk" => (ctx) {
+        let dst = ctx.dst.unwrap();
+        let val = ctx.k.unwrap();
+        Instruction::Ldi { dst, val }
+    }
     "1001 0101 0000 1000" => (ctx) {
         Instruction::Ret
+    }
+    "1001 010k kkkk 111k kkkk kkkk kkkk kkkk" => (ctx) {
+        let addr = ctx.k.unwrap();
+        Instruction::Call { addr }
     }
 });
 
 fn main() {
-    let in_file = env::args().skip(1).next().unwrap();
+    let in_file = env::args().skip(1).next()
+        .expect("expected 1 argument to program");
     let contents = fs::read_to_string(in_file).unwrap();
     let words = read_ihex(&contents);
 
     // to le
-    let mut data = words[56..72].to_vec();
+    let mut data = words;
     for pair in data.chunks_exact_mut(2) {
         let f = pair[0];
         let l = pair[1];
@@ -186,10 +247,10 @@ fn main() {
 
     let mut cur = 0usize;
     while cur != data.len() {
-        let ins = match_instruction(&data[cur..])
+        let (ins, offset) = match_instruction(&data[cur..])
             .expect("failed to match instruction");
         println!("{:?}", ins);
-        cur += 2;
+        cur += offset;
     }
 
     // for i in data {
