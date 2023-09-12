@@ -5,7 +5,7 @@ text-sec2.elf:     file format elf32-avr
 Disassembly of section .sec1:
 
 00000000 <.sec1>:
-   0:	0c 94 34 00 	jmp	0x68	;  0x68
+   0:	0c 94 34 00 	jmp	0x68	;  0x68 RESET
    4:	0c 94 3e 00 	jmp	0x7c	;  0x7c
    8:	0c 94 3e 00 	jmp	0x7c	;  0x7c
    c:	0c 94 3e 00 	jmp	0x7c	;  0x7c
@@ -25,7 +25,8 @@ Disassembly of section .sec1:
   44:	0c 94 3e 00 	jmp	0x7c	;  0x7c
   48:	0c 94 3e 00 	jmp	0x7c	;  0x7c
   4c:	0c 94 3e 00 	jmp	0x7c	;  0x7c
-  50:	0c 94 3e 00 	jmp	0x7c	;  0  54:	0c 94 3e 00 	jmp	0x7c	;  0x7c
+  50:	0c 94 3e 00 	jmp	0x7c	;  0x7c
+  54:	0c 94 3e 00 	jmp	0x7c	;  0x7c
   58:	0c 94 3e 00 	jmp	0x7c	;  0x7c
   5c:	0c 94 3e 00 	jmp	0x7c	;  0x7c
   60:	0c 94 3e 00 	jmp	0x7c	;  0x7c

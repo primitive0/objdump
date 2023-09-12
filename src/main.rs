@@ -101,7 +101,7 @@ fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
             'k' => {
                 kbits.push(bit);
             },
-            'P' => {
+            'p' => {
                 pbits.push(bit);
             }
             _ => panic!("bad pattern"),
@@ -208,10 +208,14 @@ instruction_matcher!({
         Instruction::Eor { dst, reg }
     }
     "1001 010k kkkk 110k kkkk kkkk kkkk kkkk" => (ctx) {
-        let k = ctx.k.unwrap();
+        let k = ctx.k.unwrap() * 2; // word
         Instruction::Jmp { pos: k }
     }
-    "1011 1PPr rrrr PPPP" => (ctx) {
+    "1001 010k kkkk 111k kkkk kkkk kkkk kkkk" => (ctx) {
+        let addr = ctx.k.unwrap() * 2; // word
+        Instruction::Call { addr }
+    }
+    "1011 1ppr rrrr pppp" => (ctx) {
         let reg = ctx.reg.unwrap();
         let port = ctx.port.unwrap();
         Instruction::Out { reg, port }
@@ -223,10 +227,6 @@ instruction_matcher!({
     }
     "1001 0101 0000 1000" => (ctx) {
         Instruction::Ret
-    }
-    "1001 010k kkkk 111k kkkk kkkk kkkk kkkk" => (ctx) {
-        let addr = ctx.k.unwrap();
-        Instruction::Call { addr }
     }
 });
 
@@ -252,8 +252,4 @@ fn main() {
         println!("{:?}", ins);
         cur += offset;
     }
-
-    // for i in data {
-    //     println!("{:08b}", i);
-    // }
 }
