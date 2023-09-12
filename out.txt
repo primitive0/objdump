@@ -1,35 +1,55 @@
-Jmp { pos: 52 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
-Jmp { pos: 62 }
+Jmp { pos: 104 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
+Jmp { pos: 124 }
 Eor { dst: 1, reg: 1 }
 Out { reg: 1, port: 63 }
-Ldi { dst: 12, val: 255 }
-Ldi { dst: 13, val: 8 }
+Ldi { dst: 28, val: 255 }
+Ldi { dst: 29, val: 8 }
 Out { reg: 29, port: 62 }
 Out { reg: 28, port: 61 }
-Call { addr: 64 }
-Jmp { pos: 82 }
+Call { addr: 128 }
+Jmp { pos: 164 }
 Jmp { pos: 0 }
+Sbi { a: 10, b: 6 }
+Cbi { a: 10, b: 1 }
+Sbi { a: 11, b: 1 }
+Sbic { a: 9, b: 1 }
+Rjmp { k: 4 }
+Sbi { a: 11, b: 6 }
+Rjmp { k: 2 }
+Cbi { a: 11, b: 6 }
+Ldi { dst: 18, val: 98 }
+Ldi { dst: 24, val: 242 }
+Ldi { dst: 25, val: 32 }
+Subi { dst: 18, k: 1 }
+Sbci { dst: 24, val: 0 }
+Sbci { dst: 25, val: 0 }
+Brne { k: -8 }
+Rjmp { k: 0 }
+Rjmp { k: 0 }
+Rjmp { k: -30 }
+Cli
+Rjmp { k: -2 }

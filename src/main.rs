@@ -40,6 +40,8 @@ struct MatchCtx {
     dst: Option<u32>,
     k: Option<u32>,
     port: Option<u32>,
+    a: Option<u32>,
+    b: Option<u32>,
     len: usize,
 }
 
@@ -73,6 +75,8 @@ fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
     let mut dbits: Vec<u8> = vec![];
     let mut kbits: Vec<u8> = vec![];
     let mut pbits: Vec<u8> = vec![];
+    let mut abits: Vec<u8> = vec![];
+    let mut bbits: Vec<u8> = vec![];
 
     let nth_bit = |n: usize| {
         let bits = bytes_required * 8;
@@ -104,6 +108,12 @@ fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
             'p' => {
                 pbits.push(bit);
             }
+            'a' => {
+                abits.push(bit);
+            }
+            'b' => {
+                bbits.push(bit);
+            }
             _ => panic!("bad pattern"),
         }
     }
@@ -124,8 +134,10 @@ fn do_match_instruction(words: &[u8], pattern: &str) -> Option<MatchCtx> {
     let dst = bits2u32(&dbits);
     let k = bits2u32(&kbits);
     let port = bits2u32(&pbits);
+    let a = bits2u32(&abits);
+    let b = bits2u32(&bbits);
 
-    Some(MatchCtx { reg, dst, k, port, len: bytes_required })
+    Some(MatchCtx { reg, dst, k, port, a, b, len: bytes_required })
 }
 
 macro_rules! instruction_matcher {
@@ -183,7 +195,51 @@ enum Instruction {
     Call {
         addr: u32,
     },
+    Sbi {
+        a: u32,
+        b: u32,
+    },
+    Cbi {
+        a: u32,
+        b: u32,
+    },
+    Sbic {
+        a: u32,
+        b: u32,
+    },
+    Rjmp {
+        k: i32,
+    },
+    Subi {
+        dst: u32,
+        k: u32,
+    },
+    Brne {
+        k: i32,
+    },
+    Sbci {
+        dst: u32,
+        val: u32,
+    },
+    Cli,
     Ret,
+}
+
+fn decode_signed(i: u32, len: usize) -> i32 {
+    fn mk1(len: usize) -> u32 {
+        let mut res = 0;
+        for i in 0..len {
+            res |= 1 << i;
+        }
+        res
+    }
+
+    if i >> (len - 1) == 1 {
+        let not = i ^ mk1(len);
+        -((not + 1) as i32)
+    } else {
+        i as i32
+    }
 }
 
 instruction_matcher!({
@@ -196,6 +252,16 @@ instruction_matcher!({
         let dst = ctx.dst.unwrap();
         let reg = ctx.reg.unwrap();
         Instruction::Add { dst, reg }
+    }
+    "0101 kkkk dddd kkkk" => (ctx) {
+        let dst = ctx.dst.unwrap() + 16; // offset
+        let k = ctx.k.unwrap();
+        Instruction::Subi { dst, k }
+    }
+    "0100 kkkk dddd kkkk" => (ctx) {
+        let dst = ctx.dst.unwrap() + 16; // offset
+        let val = ctx.k.unwrap();
+        Instruction::Sbci { dst, val }
     }
     "1001 11rd dddd rrrr" => (ctx) {
         let dst = ctx.dst.unwrap();
@@ -215,18 +281,48 @@ instruction_matcher!({
         let addr = ctx.k.unwrap() * 2; // word
         Instruction::Call { addr }
     }
+    "1100 kkkk kkkk kkkk" => (ctx) {
+        let k = ctx.k.unwrap();
+        let mut k = decode_signed(k, 12);
+        k *= 2;
+        Instruction::Rjmp { k }
+    }
+    "1001 0101 0000 1000" => (ctx) {
+        Instruction::Ret
+    }
+    "1111 01kk kkkk k001" => (ctx) {
+        let k = ctx.k.unwrap();
+        let mut k = decode_signed(k, 7);
+        k *= 2;
+        Instruction::Brne { k }
+    }
     "1011 1ppr rrrr pppp" => (ctx) {
         let reg = ctx.reg.unwrap();
         let port = ctx.port.unwrap();
         Instruction::Out { reg, port }
     }
     "1110 kkkk dddd kkkk" => (ctx) {
-        let dst = ctx.dst.unwrap();
+        let dst = ctx.dst.unwrap() + 16; // offset
         let val = ctx.k.unwrap();
-        Instruction::Ldi { dst, val }
+        Instruction::Ldi { dst, val } // todo: Ser?
     }
-    "1001 0101 0000 1000" => (ctx) {
-        Instruction::Ret
+    "1001 1010 aaaa abbb" => (ctx) {
+        let a = ctx.a.unwrap();
+        let b = ctx.b.unwrap();
+        Instruction::Sbi { a, b }
+    }
+    "1001 1000 aaaa abbb" => (ctx) {
+        let a = ctx.a.unwrap();
+        let b = ctx.b.unwrap();
+        Instruction::Cbi { a, b }
+    }
+    "1001 1001 aaaa abbb" => (ctx) {
+        let a = ctx.a.unwrap();
+        let b = ctx.b.unwrap();
+        Instruction::Sbic { a, b }
+    }
+    "1001 0100 1111 1000" => (ctx) {
+        Instruction::Cli
     }
 });
 
