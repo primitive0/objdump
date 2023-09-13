@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 
-// type Word = u16;
+use asm::AsmBuilder;
+use asm::InsArg;
+
+mod asm;
 
 fn read_ihex(s: &str) -> Vec<u8> {
     let mut c2b: HashMap<char, u8> = HashMap::new();
@@ -163,7 +166,7 @@ macro_rules! instruction_matcher {
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Instruction {
     Movw {
         dst: u32,
@@ -341,11 +344,69 @@ fn main() {
         pair[1] = f;
     }
 
+    let mut builder = AsmBuilder::new();
+
     let mut cur = 0usize;
     while cur != data.len() {
         let (ins, offset) = match_instruction(&data[cur..])
             .expect("failed to match instruction");
-        println!("{:?}", ins);
+
+        match ins {
+            Instruction::Movw { dst, reg } => {
+                builder.push_ins("movw", &[InsArg::Reg(dst), InsArg::Reg(reg)]);
+            },
+            Instruction::Add { dst, reg } => {
+                builder.push_ins("add", &[InsArg::Reg(dst), InsArg::Reg(reg)]);
+            },
+            Instruction::Mul { dst, reg } => {
+                builder.push_ins("mul", &[InsArg::Reg(dst), InsArg::Reg(reg)]);
+            },
+            Instruction::Eor { dst, reg } => {
+                builder.push_ins("eor", &[InsArg::Reg(dst), InsArg::Reg(reg)]);
+            },
+            Instruction::Jmp { pos } => {
+                builder.push_ins("jmp", &[InsArg::Val(pos)]);
+            },
+            Instruction::Out { reg, port } => {
+                builder.push_ins("out", &[InsArg::Val(port), InsArg::Reg(reg)]);
+            },
+            Instruction::Ldi { dst, val } => {
+                builder.push_ins("ldi", &[InsArg::Reg(dst), InsArg::Val(val)]);
+            },
+            Instruction::Call { addr } => {
+                builder.push_ins("call", &[InsArg::Val(addr)]);
+            },
+            Instruction::Sbi { a, b } => {
+                builder.push_ins("sbi", &[InsArg::Val(a), InsArg::Val(b)]);
+            },
+            Instruction::Cbi { a, b } => {
+                builder.push_ins("cbi", &[InsArg::Val(a), InsArg::Val(b)]);
+            },
+            Instruction::Sbic { a, b } => {
+                builder.push_ins("sbic", &[InsArg::Val(a), InsArg::Val(b)]);
+            },
+            Instruction::Rjmp { k } => {
+                builder.push_ins("rjmp", &[InsArg::Offset(k)]);
+            },
+            Instruction::Subi { dst, k } => {
+                builder.push_ins("subi", &[InsArg::Reg(dst), InsArg::Val(k)]);
+            },
+            Instruction::Brne { k } => {
+                builder.push_ins("brne", &[InsArg::Offset(k)]);
+            },
+            Instruction::Sbci { dst, val } => {
+                builder.push_ins("sbci", &[InsArg::Reg(dst), InsArg::Val(val)]);
+            },
+            Instruction::Cli => {
+                builder.push_ins("cli", &[]);
+            },
+            Instruction::Ret => {
+                builder.push_ins("ret", &[]);
+            },
+        }
+
         cur += offset;
     }
+
+    println!("{}", builder.buf);
 }
