@@ -1,0 +1,17 @@
+0000 0001 dddd rrrr => movw RWd, RWr
+0000 11rd dddd rrrr => add Rd, Rr
+0101 kkkk dddd kkkk => subi RUd, k
+0100 kkkk dddd kkkk => sbci RUd, k
+1001 11rd dddd rrrr => mul Rd, Rr
+0010 01rd dddd rrrr => eor Rd, Rr
+1001 010k kkkk 110k kkkk kkkk kkkk kkkk => jmp Wk
+1001 010k kkkk 111k kkkk kkkk kkkk kkkk => call Wk
+1100 kkkk kkkk kkkk => rjmp WSk
+1001 0101 0000 1000 => ret
+1111 01kk kkkk k001 => brne WSk
+1011 1ppr rrrr pppp => out p, Rr
+1110 kkkk dddd kkkk => ldi RUd, k
+1001 1010 aaaa abbb => sbi a, b
+1001 1000 aaaa abbb => cbi a, b
+1001 1001 aaaa abbb => sbic a, b
+1001 0100 1111 1000 => cli
