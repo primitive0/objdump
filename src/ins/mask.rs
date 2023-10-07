@@ -15,7 +15,6 @@ impl InsMask {
                 let b = self.inner.len() - 1;
                 ((word >> ((b - i) as u32)) & 1) as u8
             };
-            // println!("name: {}, bit: {}", self.cmd.name, bit);
 
             match self.inner[i] {
                 0 => {
