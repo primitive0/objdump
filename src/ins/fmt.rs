@@ -110,8 +110,6 @@ impl InsCmd {
     }
 
     pub fn write_cmd(&self, buf: &VarBuf, builder: &mut String) {
-        
-
         builder.push_str(&self.name);
         let mut arg_strs: Vec<String> = vec![];
         for arg in &self.args {

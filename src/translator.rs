@@ -14,6 +14,7 @@ pub fn translate(table: &InsTable, data: &[u8]) -> String {
                 }
             };
             if let Some(buf) = pattern.match_pattern(word) {
+                res.push_str(&format!("{:>4x}: ", cursor));
                 pattern.cmd().write_cmd(&buf, &mut res);
                 cursor += pattern.len();
                 continue 'c;
