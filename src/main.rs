@@ -1,4 +1,6 @@
-use std::{env, fs};
+use std::{env, fs, path::PathBuf};
+
+use clap::{arg, command, value_parser};
 
 mod ins;
 mod ihex;
@@ -14,16 +16,32 @@ fn swap_bytes(data: &mut [u8]) {
 }
 
 fn main() {
-    let ins_data = fs::read_to_string("instructions.txt")
-        .expect("failed to read instructions.txt");
+    let ins_data = match fs::read_to_string("instructions.txt") {
+        Ok(v) => v,
+        Err(err) => {
+            println!("error: failed to read instructions.txt:\n{}", err);
+            return;
+        },
+    };
     let table = ins::parse_instructions(&ins_data);
 
-    let in_file = env::args().skip(1).next()
-        .expect("expected 1 argument to program");
-    let contents = fs::read_to_string(in_file).unwrap();
-    let mut data = ihex::read_ihex(&contents);
+    let args = command!()
+        .arg(
+            arg!(<file> "Intel HEX file to decode")
+                .value_parser(value_parser!(PathBuf))
+        )
+        .get_matches();
 
-    // to le
+    let path = args.get_one::<PathBuf>("file").unwrap();
+    let contents = match fs::read_to_string(path) {
+        Ok(v) => v,
+        Err(err) => {
+            println!("error: failed to read input data:\n{}", err);
+            return;
+        }
+    };
+
+    let mut data = ihex::read_ihex(&contents);
     swap_bytes(&mut data);
 
     let r = translator::translate(&table, &data);

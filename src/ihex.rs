@@ -12,6 +12,20 @@ static C2B: Lazy<HashMap<char, u8>> = Lazy::new(|| {
     c2b
 });
 
+// struct ParsingError {
+//     line: usize,
+//     character: usize,
+// }
+
+// let mut cursor = l.chars();
+
+// let ch = match cursor.next() {
+//     Some(v) => v,
+//     None => {
+//         return ;
+//     },
+// };
+
 pub fn read_ihex(s: &str) -> Vec<u8> {
     let mut res: Vec<u8> = vec![];
     for mut l in s.split("\n") {
