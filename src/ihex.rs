@@ -12,21 +12,7 @@ static C2B: Lazy<HashMap<char, u8>> = Lazy::new(|| {
     c2b
 });
 
-// struct ParsingError {
-//     line: usize,
-//     character: usize,
-// }
-
-// let mut cursor = l.chars();
-
-// let ch = match cursor.next() {
-//     Some(v) => v,
-//     None => {
-//         return ;
-//     },
-// };
-
-pub fn read_ihex(s: &str) -> Vec<u8> {
+pub fn read_ihex(s: &str) -> Option<Vec<u8>> {
     let mut res: Vec<u8> = vec![];
     for mut l in s.split("\n") {
         if l == ":00000001FF" {
@@ -35,16 +21,16 @@ pub fn read_ihex(s: &str) -> Vec<u8> {
 
         const PREFIX_LEN: usize = 1 + 8; // : + meta
         const SUFFIX_LEN: usize = 2; // checksum
-        l = &l[PREFIX_LEN..(l.len() - SUFFIX_LEN)];
+        l = l.get(PREFIX_LEN..(l.len() - SUFFIX_LEN))?;
         for pair in l.chars().collect::<Vec<char>>().chunks(2) {
             if pair.len() != 2 {
-                panic!("read_ihex: bad input");
+                return None;
             }
-            let p1 = *C2B.get(&pair[0]).unwrap();
-            let p2 = *C2B.get(&pair[1]).unwrap();
+            let p1 = *C2B.get(&pair[0])?;
+            let p2 = *C2B.get(&pair[1])?;
             let v = (p1 << 4) | p2;
             res.push(v);
         }
     }
-    res
+    Some(res)
 }

@@ -128,7 +128,7 @@ impl InsCmd {
 pub fn parse_cmd_arg(arg: &str) -> CmdArg {
     let mut iter = arg.chars().rev();
     let var = iter.next().unwrap();
-    
+
     let mut format: Vec<ArgSpecifier> = vec![];
     for sp in iter {
         let cmd_format = match sp {

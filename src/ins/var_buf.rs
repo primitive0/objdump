@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-// todo: zero copy
 #[derive(Debug)]
 pub struct VarBuf {
     pub v2b: HashMap<char, Vec<u8>>,

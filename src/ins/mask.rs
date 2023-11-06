@@ -6,7 +6,7 @@ pub struct InsMask {
 }
 
 impl InsMask {
-    pub fn match_mask(&self, word: u32) -> Option<VarBuf> {
+    pub fn do_match(&self, word: u32) -> Option<VarBuf> {
         let mut buf = VarBuf::new();
 
         for i in 0..(self.inner.len()) {

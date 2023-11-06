@@ -16,8 +16,8 @@ pub struct InsPattern {
 }
 
 impl InsPattern {
-    pub fn match_pattern(&self, word: u32) -> Option<VarBuf> {
-        self.mask.match_mask(word)
+    pub fn do_match(&self, word: u32) -> Option<VarBuf> {
+        self.mask.do_match(word)
     }
 
     pub fn len(&self) -> usize {
@@ -37,19 +37,13 @@ fn parse_pattern(s: &str) -> InsPattern {
     InsPattern { mask, cmd }
 }
 
-pub fn parse_instructions(contents: &str) -> InsTable {
+pub fn parse_instructions(contents: &str) -> Vec<InsPattern> {
     let mut patterns: Vec<InsPattern> = vec![];
     for line in contents.split("\n") {
         if line == "" {
-            break;
+            continue;
         }
         patterns.push(parse_pattern(line));
     }
-    InsTable { patterns }
-}
-
-// todo: remove
-#[derive(Debug)]
-pub struct InsTable {
-    pub patterns: Vec<InsPattern>,
+    patterns
 }
