@@ -1,3 +1,5 @@
+use anyhow::bail;
+
 use super::VarBuf;
 
 fn decode_signed(i: u32, len: usize) -> i32 {
@@ -124,7 +126,7 @@ impl InsCmd {
     }
 }
 
-pub fn parse_cmd_arg(arg: &str) -> CmdArg {
+pub fn parse_cmd_arg(arg: &str) -> anyhow::Result<CmdArg> {
     let mut iter = arg.chars().rev();
     let var = iter.next().unwrap();
 
@@ -135,11 +137,11 @@ pub fn parse_cmd_arg(arg: &str) -> CmdArg {
             'W' => ArgSpecifier::Wide,
             'U' => ArgSpecifier::Offset16,
             'S' => ArgSpecifier::Signed,
-            _ => panic!("error!"),
+            _ => bail!("failed to parse cmd arg specifier: found {}", sp),
         };
         format.push(cmd_format);
     }
-    CmdArg { var, format }
+    Ok(CmdArg { var, format })
 }
 
 pub fn parse_cmd(cmd: &str) -> anyhow::Result<InsCmd> {
@@ -192,7 +194,7 @@ pub fn parse_cmd(cmd: &str) -> anyhow::Result<InsCmd> {
             }
         };
 
-        args.push(parse_cmd_arg(arg));
+        args.push(parse_cmd_arg(arg)?);
     }
 
     Ok(InsCmd {
