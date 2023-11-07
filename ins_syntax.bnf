@@ -1,0 +1,24 @@
+<instructions> ::= <instruction> | <instruction><instructions>
+
+<instruction> ::= <mask> => <cmd>
+
+<mask> ::= <mask character> | <mask character><mask>
+<mask character> ::= <digit> | <letter> | <space character>
+
+<cmd> ::= <identifier> <cmd args>
+<cmd args> ::= <cmd arg> | <cmd arg>,<cmd args>
+
+<identifier> ::= <letter> | <letter><identifier>
+
+<cmd arg> ::= <specifiers><var>
+
+<var> ::= <letter>
+
+<specifiers> ::= <specifier> | <specifier><specifiers>
+<specifier> ::= R | W | U | S
+
+
+
+<letter> ::= a | b | ... | z
+<digit> ::= 0 | 1 | ... | 9
+<space character> ::= ...
