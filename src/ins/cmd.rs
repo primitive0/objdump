@@ -75,7 +75,7 @@ impl CmdArg {
                 ArgSpecifier::Signed => {
                     match format {
                         CmdFormat::Val(v) => {
-                            let v = decode_signed(v, buf.bits(self.var).unwrap());
+                            let v = decode_signed(v, buf.bits_len(self.var).unwrap());
                             format = CmdFormat::Signed(v)
                         }
                         _ => panic!("failed"),
@@ -121,7 +121,6 @@ impl InsCmd {
             builder.push_str(" ");
         }
         builder.push_str(&s);
-        builder.push_str("\n");
     }
 }
 
@@ -143,7 +142,7 @@ pub fn parse_cmd_arg(arg: &str) -> CmdArg {
     CmdArg { var, format }
 }
 
-pub fn parse_cmd(cmd: &str) -> InsCmd {
+pub fn parse_cmd(cmd: &str) -> anyhow::Result<InsCmd> {
     fn next(c: &str, i: usize) -> (&str, &str) {
         (&c[..i], &c[i..])
     }
@@ -196,8 +195,8 @@ pub fn parse_cmd(cmd: &str) -> InsCmd {
         args.push(parse_cmd_arg(arg));
     }
 
-    InsCmd {
+    Ok(InsCmd {
         name: name.to_string(),
         args,
-    }
+    })
 }

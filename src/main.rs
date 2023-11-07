@@ -14,7 +14,13 @@ fn main() {
             return;
         },
     };
-    let patterns = ins::parse_instructions(&ins_data);
+    let patterns = match ins::parse_instructions(&ins_data) {
+        Ok(v) => v,
+        Err(err) => {
+            println!("error: failed to parse instructions.txt:\n{}", err);
+            return;
+        },
+    };
 
     let args = command!()
         .arg(
@@ -32,22 +38,17 @@ fn main() {
         }
     };
 
-    let Some(mut data) = ihex::read_ihex(&contents) else {
+    let Some(data) = ihex::read_ihex(&contents) else {
         println!("error: failed to read ihex file");
         return;
     };
 
-    swap_bytes(&mut data);
-
-    let r = translator::translate(&patterns, &data);
+    let r = match translator::translate(&patterns, &data) {
+        Ok(v) => v,
+        Err(err) => {
+            println!("error: failed to decode assembler:\n{}", err);
+            return;
+        },
+    };
     println!("{}", r);
-}
-
-fn swap_bytes(data: &mut [u8]) {
-    for pair in data.chunks_exact_mut(2) {
-        let f = pair[0];
-        let l = pair[1];
-        pair[0] = l;
-        pair[1] = f;
-    }
 }

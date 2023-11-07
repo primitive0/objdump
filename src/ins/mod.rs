@@ -1,11 +1,11 @@
-mod var_buf;
-pub use var_buf::VarBuf;
+use anyhow::bail;
 
 mod mask;
 pub use mask::InsMask;
+pub use mask::VarBuf;
 
-mod fmt;
-pub use fmt::{InsCmd, CmdArg, ArgSpecifier};
+mod cmd;
+pub use cmd::{InsCmd, CmdArg, ArgSpecifier};
 
 // todo: smallvec
 
@@ -29,21 +29,23 @@ impl InsPattern {
     }
 }
 
-fn parse_pattern(s: &str) -> InsPattern {
+fn parse_pattern(s: &str) -> anyhow::Result<InsPattern> {
     let pair: Vec<&str> = s.split("=>").collect();
-    assert_eq!(pair.len(), 2);
-    let mask = mask::parse_mask(pair[0].trim());
-    let cmd = fmt::parse_cmd(pair[1].trim());
-    InsPattern { mask, cmd }
+    if pair.len() != 2 {
+        bail!("failed to parse pattern: {}", s);
+    }
+    let mask = mask::parse_mask(pair[0].trim())?;
+    let cmd = cmd::parse_cmd(pair[1].trim())?;
+    Ok(InsPattern { mask, cmd })
 }
 
-pub fn parse_instructions(contents: &str) -> Vec<InsPattern> {
+pub fn parse_instructions(contents: &str) -> anyhow::Result<Vec<InsPattern>> {
     let mut patterns: Vec<InsPattern> = vec![];
     for line in contents.split("\n") {
         if line == "" {
             continue;
         }
-        patterns.push(parse_pattern(line));
+        patterns.push(parse_pattern(line)?);
     }
-    patterns
+    Ok(patterns)
 }
